@@ -1,0 +1,7 @@
+{
+  "api_url": "https://kggmdmgpz2.execute-api.us-east-1.amazonaws.com/prod",
+  "cognito_pool_id": "us-east-1_Ve0lmkJ2v",
+  "cognito_client_id": "1485nptlm6cp3ffd89eg5t8v6k",
+  "sns_topic_arn": "arn:aws:sns:us-east-1:214277677017:lap-records",
+  "region": "us-east-1"
+}
