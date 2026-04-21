@@ -33,16 +33,21 @@
         <label>Password</label>
         <div style="position:relative">
           <input type="password" id="auth-password" placeholder="Min 8 characters" style="padding-right:48px">
-          <button onclick="togglePassword()" type="button" style="position:absolute;right:0;top:0;height:100%;width:44px;background:transparent;border:none;border-left:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Toggle password visibility">
-            <span id="eye-label">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </span>
+          <button onclick="togglePassword()" type="button" style="position:absolute;right:0;top:0;height:100%;width:44px;background:transparent;border:none;border-left:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:0">
+            <span id="eye-label">show</span>
           </button>
         </div>
       </div>
       <div style="display:flex;gap:12px;margin-top:4px;">
         <button class="btn btn-primary" style="flex:1" onclick="login()">Login</button>
         <button class="btn" style="flex:1" onclick="signup()">Sign Up</button>
+      </div>
+      <div id="confirm-section" style="display:none;margin-top:16px;">
+        <div class="form-group">
+          <label>Verification code sent to <span id="confirm-email-display" style="color:var(--red)"></span></label>
+          <input type="text" id="confirm-code" placeholder="Enter 6-digit code">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="confirmSignup()">Verify Email</button>
       </div>
       <div class="message" id="auth-msg"></div>
     </div>
