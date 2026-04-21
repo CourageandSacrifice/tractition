@@ -10,19 +10,6 @@ setInterval(() => {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
 }, 1000);
 
-// Show/hide password
-function togglePassword() {
-  const input = document.getElementById('auth-password');
-  const label = document.getElementById('eye-label');
-  if (input.type === 'password') {
-    input.type = 'text';
-    label.textContent = 'hide';
-  } else {
-    input.type = 'password';
-    label.textContent = 'show';
-  }
-}
-
 // ── AUTH ──
 async function cognitoRequest(action, body) {
   const res = await fetch(COGNITO_URL, {
