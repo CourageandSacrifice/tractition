@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRACTITION</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><span>&#9651;</span></div>
+    <h1>LAP<span>//</span>TRACKER</h1>
+  </div>
+  <div class="header-status">
+    <span class="status-dot"></span>AWS ONLINE<br>
+    SYS_TIME: <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- AUTH SECTION -->
+  <div id="auth-section">
+    <div class="card" style="max-width:440px;margin:0 auto;">
+      <h2>Driver Login</h2>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="auth-email" placeholder="driver@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="auth-password" placeholder="Min 8 characters">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:4px;">
+        <button class="btn btn-primary" style="flex:1" onclick="login()">Login</button>
+        <button class="btn" style="flex:1" onclick="signup()">Sign Up</button>
+      </div>
+      <div class="message" id="auth-msg"></div>
+    </div>
+  </div>
+
+  <!-- APP SECTION (hidden until logged in) -->
+  <div id="app-section" style="display:none">
+
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:16px;">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="logged-in-email"></span>
+      <button class="btn" style="padding:6px 16px;font-size:12px" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="grid-2">
+      <!-- Submit Lap -->
+      <div class="card">
+        <h2>Submit Lap</h2>
+        <div class="form-group">
+          <label>Driver Name</label>
+          <input type="text" id="driver-name" placeholder="e.g. Max Verstappen">
+        </div>
+        <div class="form-group">
+          <label>Driver ID</label>
+          <input type="text" id="driver-id" placeholder="e.g. max01">
+        </div>
+        <div class="form-group">
+          <label>Track</label>
+          <select id="track-id">
+            <option value="monaco" data-name="Monaco Grand Prix">Monaco Grand Prix</option>
+            <option value="silverstone" data-name="Silverstone">Silverstone</option>
+            <option value="spa" data-name="Spa-Francorchamps">Spa-Francorchamps</option>
+            <option value="monza" data-name="Monza">Monza</option>
+            <option value="nurburgring" data-name="Nurburgring">Nurburgring</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lap Time (mm:ss.ms)</label>
+          <input type="text" id="lap-time" placeholder="1:23.456">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="submitLap()">Submit Lap</button>
+        <div class="message" id="submit-msg"></div>
+      </div>
+
+      <!-- Telemetry Upload -->
+      <div class="card">
+        <h2>Telemetry Upload</h2>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('tel-file').click()">
+          <div class="upload-icon">&#9650;</div>
+          <p>Drop CSV telemetry file or <span>click to browse</span></p>
+          <input type="file" id="tel-file" accept=".csv" style="display:none" onchange="handleFile(this)">
+          <div class="coming-soon-overlay">
+            <span class="cs-label">Coming Soon</span>
+            <span class="cs-sub">// Feature will be published in a future release</span>
+          </div>
+        </div>
+        <div class="telemetry-preview" id="tel-preview" style="display:none"></div>
+        <div class="stat-grid" id="tel-stats" style="display:none">
+          <div class="stat-box"><span class="val" id="stat-maxspeed">--</span><span class="lbl">Max Speed</span></div>
+          <div class="stat-box"><span class="val" id="stat-maxthrottle">--</span><span class="lbl">Max Throttle</span></div>
+          <div class="stat-box"><span class="val" id="stat-rows">--</span><span class="lbl">Data Points</span></div>
+        </div>
+        <div class="message" id="tel-msg"></div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="card">
+      <h2>Leaderboard <span class="cached-badge" id="cache-badge" style="display:none">CACHED</span></h2>
+      <div class="tabs">
+        <button class="tab active" onclick="loadLeaderboard('monaco', this)">Monaco</button>
+        <button class="tab" onclick="loadLeaderboard('silverstone', this)">Silverstone</button>
+        <button class="tab" onclick="loadLeaderboard('spa', this)">Spa</button>
+        <button class="tab" onclick="loadLeaderboard('monza', this)">Monza</button>
+        <button class="tab" onclick="loadLeaderboard('nurburgring', this)">Nurburgring</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Pos</th><th>Driver</th><th>Lap Time</th><th>Date</th></tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <tr><td colspan="4" style="color:#333;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// NO DATA LOADED</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
