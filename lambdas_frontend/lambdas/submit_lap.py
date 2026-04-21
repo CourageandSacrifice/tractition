@@ -13,6 +13,7 @@ def lambda_handler(event, context):
     body = json.loads(event.get('body', '{}'))
     driver_id = body.get('driver_id')
     driver_name = body.get('driver_name')
+    car_name = body.get('car_name', '')
     track_id = body.get('track_id')
     track_name = body.get('track_name')
     lap_time_ms = int(body.get('lap_time_ms'))
@@ -38,6 +39,7 @@ def lambda_handler(event, context):
         'lap_id': f"{driver_id}#{timestamp}",
         'driver_id': driver_id,
         'driver_name': driver_name,
+        'car_name': car_name,
         'track_id': track_id,
         'track_name': track_name,
         'lap_time_ms': lap_time_ms,

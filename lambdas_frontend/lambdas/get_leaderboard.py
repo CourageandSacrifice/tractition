@@ -24,6 +24,7 @@ def lambda_handler(event, context):
             seen_drivers.add(item['driver_id'])
             leaderboard.append({
                 'driver_name': item['driver_name'],
+                'car_name': item.get('car_name', ''),
                 'lap_time_ms': int(item['lap_time_ms']),
                 'timestamp': item['timestamp']
             })

@@ -4,6 +4,8 @@ const COGNITO_REGION = "us-east-1";
 const COGNITO_URL = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`;
 
 let authToken = null;
+let activeTrack = 'monaco';
+let refreshInterval = null;
 
 // Clock
 setInterval(() => {
@@ -23,6 +25,30 @@ function togglePassword() {
     input.type = 'password';
     label.innerHTML = eyeOpen;
   }
+}
+
+// ── SESSION PERSISTENCE ──
+function loadSession() {
+  const token = localStorage.getItem('authToken');
+  const email = localStorage.getItem('authEmail');
+  if (!token || !email) return;
+
+  // Check JWT expiry without a library — decode the payload
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('authEmail');
+      return;
+    }
+  } catch (e) {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authEmail');
+    return;
+  }
+
+  authToken = token;
+  showAuthenticatedUI(email);
 }
 
 // ── AUTH ──
@@ -55,6 +81,8 @@ async function login() {
       AuthParameters: { USERNAME: email, PASSWORD: password }
     });
     authToken = data.AuthenticationResult.IdToken;
+    localStorage.setItem('authToken', authToken);
+    localStorage.setItem('authEmail', email);
     showAuthenticatedUI(email);
   } catch (err) {
     showMsg('auth-msg', `ERROR: ${err.message}`, 'error');
@@ -80,7 +108,30 @@ async function signup() {
       Password: password,
       UserAttributes: [{ Name: 'email', Value: email }]
     });
-    showMsg('auth-msg', '// Account created! Check your email to verify, then log in.', 'success');
+    document.getElementById('confirm-email-display').textContent = email;
+    document.getElementById('confirm-section').style.display = 'block';
+    showMsg('auth-msg', '// Verification code sent to your email.', 'success');
+  } catch (err) {
+    showMsg('auth-msg', `ERROR: ${err.message}`, 'error');
+  }
+}
+
+async function confirmSignup() {
+  const email = document.getElementById('auth-email').value.trim();
+  const code = document.getElementById('confirm-code').value.trim();
+  if (!code) {
+    showMsg('auth-msg', 'ERROR: Enter the verification code.', 'error');
+    return;
+  }
+  showMsg('auth-msg', '// Verifying...', 'info');
+  try {
+    await cognitoRequest('ConfirmSignUp', {
+      ClientId: COGNITO_CLIENT_ID,
+      Username: email,
+      ConfirmationCode: code
+    });
+    document.getElementById('confirm-section').style.display = 'none';
+    showMsg('auth-msg', '// Email verified! You can now log in.', 'success');
   } catch (err) {
     showMsg('auth-msg', `ERROR: ${err.message}`, 'error');
   }
@@ -88,6 +139,9 @@ async function signup() {
 
 function logout() {
   authToken = null;
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('authEmail');
+  stopAutoRefresh();
   document.getElementById('auth-section').style.display = 'block';
   document.getElementById('app-section').style.display = 'none';
   document.getElementById('auth-email').value = '';
@@ -99,7 +153,24 @@ function showAuthenticatedUI(email) {
   document.getElementById('auth-section').style.display = 'none';
   document.getElementById('app-section').style.display = 'block';
   document.getElementById('logged-in-email').textContent = email;
-  loadLeaderboard('monaco', document.querySelector('.tab.active'));
+  loadLeaderboard(activeTrack, document.querySelector('.tab.active'));
+  startAutoRefresh();
+}
+
+// ── AUTO REFRESH ──
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshInterval = setInterval(() => {
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab) loadLeaderboard(activeTrack, activeTab);
+  }, 15000);
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
 }
 
 // ── DRAG AND DROP ──
@@ -181,6 +252,7 @@ async function submitLap() {
   }
   const driverName = document.getElementById('driver-name').value.trim();
   const driverId = document.getElementById('driver-id').value.trim();
+  const carName = document.getElementById('car-name').value.trim();
   const trackSelect = document.getElementById('track-id');
   const trackId = trackSelect.value;
   const trackName = trackSelect.options[trackSelect.selectedIndex].dataset.name;
@@ -203,7 +275,7 @@ async function submitLap() {
         'Content-Type': 'application/json',
         'Authorization': authToken
       },
-      body: JSON.stringify({ driver_id: driverId, driver_name: driverName, track_id: trackId, track_name: trackName, lap_time_ms: lapTimeMs })
+      body: JSON.stringify({ driver_id: driverId, driver_name: driverName, car_name: carName, track_id: trackId, track_name: trackName, lap_time_ms: lapTimeMs })
     });
     const data = await res.json();
     if (data.is_record) {
@@ -211,6 +283,9 @@ async function submitLap() {
     } else {
       showMsg('submit-msg', `// LAP ACCEPTED — ${formatTime(lapTimeMs)}`, 'success');
     }
+    // Immediately refresh leaderboard for the submitted track
+    const targetTab = [...document.querySelectorAll('.tab')].find(t => t.textContent.toLowerCase().includes(trackId.substring(0, 4)));
+    loadLeaderboard(trackId, targetTab || document.querySelector('.tab.active'));
   } catch (err) {
     showMsg('submit-msg', 'ERROR: Could not reach API.', 'error');
   }
@@ -218,27 +293,32 @@ async function submitLap() {
 
 // ── LEADERBOARD ──
 async function loadLeaderboard(trackId, tabEl) {
+  activeTrack = trackId;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   tabEl.classList.add('active');
   const tbody = document.getElementById('leaderboard-body');
-  tbody.innerHTML = '<tr><td colspan="4" style="color:#333;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// LOADING...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="color:#333;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// LOADING...</td></tr>';
   try {
     const res = await fetch(`${API}/leaderboard/${trackId}`);
     const data = await res.json();
     document.getElementById('cache-badge').style.display = data.cached ? 'inline' : 'none';
     if (!data.leaderboard || data.leaderboard.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="color:#333;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// NO LAPS RECORDED</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="color:#333;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// NO LAPS RECORDED</td></tr>';
       return;
     }
     tbody.innerHTML = data.leaderboard.map((entry, i) => `
       <tr class="${i === 0 ? 'first-place' : ''}">
         <td class="pos ${i === 0 ? 'gold' : ''}">${i === 0 ? '01 &#9660;' : String(i + 1).padStart(2, '0')}</td>
         <td>${entry.driver_name}</td>
+        <td>${entry.car_name || '—'}</td>
         <td>${formatTime(entry.lap_time_ms)}</td>
         <td style="color:#444">${new Date(entry.timestamp).toLocaleDateString()}</td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:#cc0000;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// CONNECTION FAILED</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:#cc0000;text-align:center;padding:32px;font-family:var(--mono);font-size:12px">// CONNECTION FAILED</td></tr>';
   }
 }
+
+// Restore session on page load
+loadSession();
